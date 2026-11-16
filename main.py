@@ -93,6 +93,21 @@ class EditRequestReview(BaseModel):
     admin_note: Optional[str] = ""
 
 
+class AddCompetitorRequest(BaseModel):
+    admin_id: int
+    category_id: str
+    order_no: Optional[int] = None
+    school_name: str
+    affiliation_group: Optional[str] = "-"
+    students_info: Optional[str] = ""
+    teachers_info: Optional[str] = ""
+
+
+class DeleteCompetitorRequest(BaseModel):
+    admin_id: int
+    competitor_id: int
+
+
 def get_medal(score: float) -> str:
     if score >= 80:
         return "เหรียญทอง"
@@ -293,6 +308,66 @@ def admin_update_judge(req: AdminUpdateJudgeRequest, conn: sqlite3.Connection = 
         )
     conn.commit()
     return {"success": True, "message": "อัปเดตข้อมูลกรรมการเรียบร้อยแล้ว"}
+
+
+@app.post("/api/admin/competitors/add")
+def admin_add_competitor(req: AddCompetitorRequest, conn: sqlite3.Connection = Depends(get_db)):
+    school_name = req.school_name.strip()
+    if not school_name:
+        raise HTTPException(status_code=400, detail="กรุณากรอกชื่อโรงเรียน หรือชื่อวงดนตรี")
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT is_admin FROM judges WHERE id = ?", (req.admin_id,))
+    admin = cursor.fetchone()
+    if not admin or not admin["is_admin"]:
+        raise HTTPException(status_code=403, detail="เฉพาะประธานกรรมการ / แอดมินเท่านั้นที่สามารถเพิ่มวงหรือโรงเรียนได้")
+
+    cursor.execute("SELECT id FROM categories WHERE id = ?", (req.category_id,))
+    if not cursor.fetchone():
+        raise HTTPException(status_code=404, detail="ไม่พบรายการแข่งขันที่เลือก")
+
+    order_no = req.order_no
+    if not order_no or order_no <= 0:
+        cursor.execute("SELECT COALESCE(MAX(order_no), 0) FROM competitors WHERE category_id = ?", (req.category_id,))
+        order_no = cursor.fetchone()[0] + 1
+
+    affiliation = (req.affiliation_group or "-").strip() or "-"
+    cursor.execute("""
+    INSERT INTO competitors (category_id, order_no, school_name, affiliation_group, students_info, teachers_info)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (req.category_id, order_no, school_name, affiliation, (req.students_info or "").strip(), (req.teachers_info or "").strip()))
+    conn.commit()
+    new_id = cursor.lastrowid
+    return {
+        "success": True,
+        "message": "เพิ่มวง / โรงเรียนเข้าแข่งขันเรียบร้อยแล้ว",
+        "competitor": {
+            "id": new_id,
+            "category_id": req.category_id,
+            "order_no": order_no,
+            "school_name": school_name,
+            "affiliation_group": affiliation,
+        },
+    }
+
+
+@app.post("/api/admin/competitors/delete")
+def admin_delete_competitor(req: DeleteCompetitorRequest, conn: sqlite3.Connection = Depends(get_db)):
+    cursor = conn.cursor()
+    cursor.execute("SELECT is_admin FROM judges WHERE id = ?", (req.admin_id,))
+    admin = cursor.fetchone()
+    if not admin or not admin["is_admin"]:
+        raise HTTPException(status_code=403, detail="เฉพาะประธานกรรมการ / แอดมินเท่านั้น")
+
+    cursor.execute("SELECT COUNT(*) FROM scores WHERE competitor_id = ?", (req.competitor_id,))
+    if cursor.fetchone()[0] > 0:
+        raise HTTPException(status_code=400, detail="ไม่สามารถลบโรงเรียนที่มีกรรมการลงคะแนนแล้วได้")
+
+    cursor.execute("DELETE FROM competitors WHERE id = ?", (req.competitor_id,))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="ไม่พบข้อมูลโรงเรียนที่ต้องการลบ")
+    conn.commit()
+    return {"success": True, "message": "ลบรายชื่อโรงเรียนเรียบร้อยแล้ว"}
 
 
 # --- Categories & Competitors ---

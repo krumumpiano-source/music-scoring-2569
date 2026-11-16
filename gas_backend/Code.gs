@@ -228,6 +228,12 @@ function doPost(e) {
     if (action === 'review_edit_request') {
       return jsonResponse_(handleReviewEditRequest_(body));
     }
+    if (action === 'add_competitor') {
+      return jsonResponse_(handleAddCompetitor_(body));
+    }
+    if (action === 'delete_competitor') {
+      return jsonResponse_(handleDeleteCompetitor_(body));
+    }
     return jsonResponse_({ ok: false, detail: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse_({ ok: false, detail: err.message || String(err) });
@@ -891,3 +897,91 @@ function handleGetResults_() {
 
   return { results: resultsByCat };
 }
+
+function handleAddCompetitor_(body) {
+  const adminId = Number(body.admin_id);
+  const categoryId = String(body.category_id || '').trim();
+  const schoolName = String(body.school_name || '').trim();
+  const affiliationGroup = String(body.affiliation_group || '').trim() || '-';
+  const studentsInfo = String(body.students_info || '').trim();
+  const teachersInfo = String(body.teachers_info || '').trim();
+  let orderNo = Number(body.order_no || 0);
+
+  if (!schoolName) {
+    return { ok: false, detail: 'กรุณากรอกชื่อโรงเรียน หรือชื่อวงดนตรี' };
+  }
+
+  const ss = getSs_();
+  const judges = sheetToObjects_(ss.getSheetByName('judges'));
+  const admin = judges.find(j => Number(j.id) === adminId);
+  if (!admin || admin.is_admin !== '1') {
+    return { ok: false, detail: 'เฉพาะประธานกรรมการ / แอดมินเท่านั้นที่สามารถเพิ่มวงหรือโรงเรียนได้' };
+  }
+
+  const cats = sheetToObjects_(ss.getSheetByName('categories'));
+  if (!cats.find(c => c.id === categoryId)) {
+    return { ok: false, detail: 'ไม่พบรายการแข่งขันที่เลือก' };
+  }
+
+  const compSheet = ss.getSheetByName('competitors');
+  const comps = sheetToObjects_(compSheet);
+  const maxId = comps.reduce((m, c) => Math.max(m, Number(c.id || 0)), 0);
+  const nextId = maxId + 1;
+
+  if (!orderNo || orderNo <= 0) {
+    const catComps = comps.filter(c => c.category_id === categoryId);
+    const maxOrder = catComps.reduce((m, c) => Math.max(m, Number(c.order_no || 0)), 0);
+    orderNo = maxOrder + 1;
+  }
+
+  appendRowAsText_(compSheet, [
+    nextId,
+    categoryId,
+    orderNo,
+    schoolName,
+    affiliationGroup,
+    studentsInfo,
+    teachersInfo
+  ]);
+
+  return {
+    ok: true,
+    success: true,
+    message: 'เพิ่มวง / โรงเรียนเข้าแข่งขันเรียบร้อยแล้ว',
+    competitor: {
+      id: nextId,
+      category_id: categoryId,
+      order_no: orderNo,
+      school_name: schoolName,
+      affiliation_group: affiliationGroup
+    }
+  };
+}
+
+function handleDeleteCompetitor_(body) {
+  const adminId = Number(body.admin_id);
+  const compId = Number(body.competitor_id);
+
+  const ss = getSs_();
+  const judges = sheetToObjects_(ss.getSheetByName('judges'));
+  const admin = judges.find(j => Number(j.id) === adminId);
+  if (!admin || admin.is_admin !== '1') {
+    return { ok: false, detail: 'เฉพาะประธานกรรมการ / แอดมินเท่านั้น' };
+  }
+
+  const scores = sheetToObjects_(ss.getSheetByName('scores'));
+  if (scores.some(s => Number(s.competitor_id) === compId)) {
+    return { ok: false, detail: 'ไม่สามารถลบโรงเรียนที่มีกรรมการลงคะแนนแล้วได้' };
+  }
+
+  const compSheet = ss.getSheetByName('competitors');
+  const comps = sheetToObjects_(compSheet);
+  const target = comps.find(c => Number(c.id) === compId);
+  if (!target) {
+    return { ok: false, detail: 'ไม่พบข้อมูลโรงเรียนที่ต้องการลบ' };
+  }
+
+  compSheet.deleteRow(target._row);
+  return { ok: true, success: true, message: 'ลบรายชื่อโรงเรียนเรียบร้อยแล้ว' };
+}
+

@@ -224,9 +224,15 @@
                     <h2 class="text-xl sm:text-2xl font-bold text-slate-900">เลือกรายการแข่งขัน</h2>
                     <p class="text-xs sm:text-sm text-slate-500 mt-0.5">เลือกรายการเพื่อแสดง QR Code ให้กรรมการสแกน และเข้าไปตัดสินให้คะแนน</p>
                 </div>
-                <div class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs bg-white text-slate-700 border border-slate-200 shadow-xs self-start md:self-auto">
-                    <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-600 shrink-0"></i>
-                    <span id="judgeProfileText" class="font-medium">กรรมการ</span>
+                <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                    <button id="addCompCategoryBtn" onclick="openAddCompetitorModal()" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition touch-manipulation">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>เพิ่มวง / โรงเรียน</span>
+                    </button>
+                    <div class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs bg-white text-slate-700 border border-slate-200 shadow-xs">
+                        <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-600 shrink-0"></i>
+                        <span id="judgeProfileText" class="font-medium">กรรมการ</span>
+                    </div>
                 </div>
             </div>
 
@@ -239,7 +245,11 @@
                 <button onclick="backToCategories()" class="inline-flex items-center text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition touch-manipulation">
                     <i data-lucide="arrow-left" class="w-4 h-4 mr-1.5"></i> ย้อนกลับไปหน้ารายการ
                 </button>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="addCompTopBtn" onclick="openAddCompetitorModal(currentCategory ? currentCategory.id : '')" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition touch-manipulation">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>เพิ่มวง / โรงเรียน</span>
+                    </button>
                     <button id="showQrTopBtn" onclick="openQrModalForCurrent()" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition touch-manipulation">
                         <i data-lucide="qr-code" class="w-4 h-4"></i>
                         <span>แสดง QR Code</span>
@@ -545,6 +555,70 @@
                         </button>
                         <button type="submit" class="flex-1 py-2.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl touch-manipulation">
                             บันทึก PIN
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 8: ADD COMPETITOR / SCHOOL MODAL (Admin / Chairman Only) -->
+        <div id="addCompetitorModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div class="bg-white max-w-lg w-full rounded-t-2xl sm:rounded-2xl border border-slate-200 shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-600"></i>
+                        <h3 class="text-base font-bold text-slate-900">เพิ่มวง / โรงเรียนเข้าแข่งขัน</h3>
+                    </div>
+                    <button onclick="closeAddCompetitorModal()" class="p-1.5 text-slate-400 hover:text-slate-800 touch-manipulation">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="addCompetitorForm" onsubmit="handleAddCompetitor(event)" class="p-5 overflow-y-auto scroll-touch space-y-4 flex-1">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รายการแข่งขัน <span class="text-red-500">*</span></label>
+                        <select id="addCompCategory" onchange="updateSuggestedOrderNo()" required
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900">
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">ลำดับที่</label>
+                            <input type="number" inputmode="numeric" id="addCompOrder" min="1" placeholder="อัตโนมัติ"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อโรงเรียน / ชื่อวงดนตรี <span class="text-red-500">*</span></label>
+                            <input type="text" id="addCompSchool" required placeholder="เช่น โรงเรียนพะเยาพิทยาคม"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">สังกัด / กลุ่มโรงเรียน</label>
+                        <input type="text" id="addCompAffiliation" placeholder="เช่น กลุ่ม 1 ภูกามยาว / กลุ่ม 2 ภูลังกา"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รายชื่อนักเรียน (ไม่บังคับ — พิมพ์บรรทัดละ 1 คน)</label>
+                        <textarea id="addCompStudents" rows="3" placeholder="1. นาย...&#10;2. นางสาว..."
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รายชื่อครูผู้ฝึกสอน (ไม่บังคับ — พิมพ์บรรทัดละ 1 คน)</label>
+                        <textarea id="addCompTeachers" rows="2" placeholder="1. นาย..."
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900"></textarea>
+                    </div>
+
+                    <div class="pt-2 flex gap-2">
+                        <button type="button" onclick="closeAddCompetitorModal()" class="flex-1 py-3 text-xs font-semibold text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 touch-manipulation">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="flex-1 py-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs touch-manipulation">
+                            บันทึกเพิ่มวง / โรงเรียน
                         </button>
                     </div>
                 </form>
@@ -902,6 +976,7 @@
             const adminBtn = document.getElementById('adminPanelBtn');
             const summaryBtn = document.getElementById('summaryNavBtn');
             const pinBtn = document.getElementById('changePinHeaderBtn');
+            const addCompCatBtn = document.getElementById('addCompCategoryBtn');
 
             if (currentJudge) {
                 document.getElementById('userHeaderBadge').classList.remove('hidden');
@@ -917,12 +992,16 @@
                     adminBtn.classList.remove('hidden');
                     adminBtn.classList.add('flex');
                     pinBtn.classList.remove('hidden');
+                    addCompCatBtn.classList.remove('hidden');
+                    addCompCatBtn.classList.add('flex');
                     document.getElementById('judgeProfileText').innerText = `ประธานกรรมการ: ${currentJudge.fullname}`;
                 } else {
                     adminTag.classList.add('hidden');
                     adminBtn.classList.add('hidden');
                     adminBtn.classList.remove('flex');
                     pinBtn.classList.add('hidden');
+                    addCompCatBtn.classList.add('hidden');
+                    addCompCatBtn.classList.remove('flex');
                     document.getElementById('judgeProfileText').innerText = `กรรมการ: ${currentJudge.fullname}`;
                 }
             } else {
@@ -930,6 +1009,7 @@
                 document.getElementById('userHeaderBadge').classList.remove('flex');
                 summaryBtn.classList.add('hidden');
                 adminBtn.classList.add('hidden');
+                addCompCatBtn.classList.add('hidden');
             }
         }
 
@@ -1102,12 +1182,17 @@
             document.getElementById('categoryBadgeCode').innerText = `รหัส ${cat.code}`;
 
             const qrTopBtn = document.getElementById('showQrTopBtn');
+            const addCompTopBtn = document.getElementById('addCompTopBtn');
             if (currentJudge && currentJudge.is_admin) {
                 qrTopBtn.classList.remove('hidden');
                 qrTopBtn.classList.add('flex');
+                addCompTopBtn.classList.remove('hidden');
+                addCompTopBtn.classList.add('flex');
             } else {
                 qrTopBtn.classList.add('hidden');
                 qrTopBtn.classList.remove('flex');
+                addCompTopBtn.classList.add('hidden');
+                addCompTopBtn.classList.remove('flex');
             }
 
             document.getElementById('categoryCommitteeBadges').innerHTML = cat.judges.map(j => `
@@ -1318,6 +1403,13 @@
                         `;
                     }
 
+                    const deleteBtnHtml = (currentJudge && currentJudge.is_admin && !c.is_scored) ? `
+                        <button type="button" onclick="deleteCompetitor(${c.id}, '${c.school_name.replace(/'/g, "\\'")}')" class="w-full sm:w-auto px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white hover:bg-red-50 text-red-600 border border-red-200 transition flex items-center justify-center gap-1 touch-manipulation">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>ลบ</span>
+                        </button>
+                    ` : '';
+
                     card.innerHTML = `
                         <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
                             <div class="flex items-start space-x-3">
@@ -1338,7 +1430,7 @@
                                     <i data-lucide="users" class="w-3.5 h-3.5 text-slate-500"></i> รายชื่อนักเรียน (${studentLines.length} คน)
                                 </span>
                                 <div class="space-y-0.5 max-h-36 overflow-y-auto scroll-touch pr-1">
-                                    ${studentLines.map(s => `<div>${s}</div>`).join('')}
+                                    ${studentLines.length ? studentLines.map(s => `<div>${s}</div>`).join('') : '<div class="text-slate-400 italic">- ยังไม่ระบุรายชื่อ -</div>'}
                                 </div>
                             </div>
                             <div>
@@ -1346,19 +1438,113 @@
                                     <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-slate-500"></i> ครูผู้ฝึกสอน
                                 </span>
                                 <div class="space-y-0.5">
-                                    ${teacherLines.map(t => `<div>${t}</div>`).join('')}
+                                    ${teacherLines.length ? teacherLines.map(t => `<div>${t}</div>`).join('') : '<div class="text-slate-400 italic">- ยังไม่ระบุรายชื่อ -</div>'}
                                 </div>
                             </div>
                         </div>
 
                         <div class="flex flex-wrap items-center justify-end gap-2">
+                            ${deleteBtnHtml}
                             ${actionHtml}
                         </div>
                         ${editLogHtml}
                     `;
                     container.appendChild(card);
                 });
+                if (currentCategory) {
+                    document.getElementById('currentCategorySub').innerText = `ระดับ: ${currentCategory.level} • จำนวน ${currentCompetitors.length} โรงเรียนเข้าประกวด`;
+                }
                 lucide.createIcons();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function openAddCompetitorModal(preselectCatId = '') {
+            const select = document.getElementById('addCompCategory');
+            select.innerHTML = categoriesList.map(c => `
+                <option value="${c.id}">${c.name} (รหัส ${c.code})</option>
+            `).join('');
+            if (preselectCatId) select.value = preselectCatId;
+            else if (currentCategory) select.value = currentCategory.id;
+
+            document.getElementById('addCompSchool').value = '';
+            document.getElementById('addCompAffiliation').value = '';
+            document.getElementById('addCompStudents').value = '';
+            document.getElementById('addCompTeachers').value = '';
+            updateSuggestedOrderNo();
+
+            document.getElementById('addCompetitorModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function updateSuggestedOrderNo() {
+            const catId = document.getElementById('addCompCategory').value;
+            const cat = categoriesList.find(c => c.id === catId);
+            if (currentCategory && currentCategory.id === catId && currentCompetitors.length > 0) {
+                const maxOrd = Math.max(...currentCompetitors.map(c => Number(c.order_no) || 0));
+                document.getElementById('addCompOrder').value = maxOrd + 1;
+            } else if (cat) {
+                document.getElementById('addCompOrder').value = (Number(cat.total_competitors) || 0) + 1;
+            } else {
+                document.getElementById('addCompOrder').value = 1;
+            }
+        }
+
+        function closeAddCompetitorModal() {
+            document.getElementById('addCompetitorModal').classList.add('hidden');
+        }
+
+        async function handleAddCompetitor(e) {
+            e.preventDefault();
+            if (!currentJudge || !currentJudge.is_admin) return alert('เฉพาะประธานกรรมการเท่านั้น');
+
+            const catId = document.getElementById('addCompCategory').value;
+            const orderVal = parseInt(document.getElementById('addCompOrder').value) || 0;
+            const schoolName = document.getElementById('addCompSchool').value.trim();
+            const affiliation = document.getElementById('addCompAffiliation').value.trim() || '-';
+            const students = document.getElementById('addCompStudents').value.trim();
+            const teachers = document.getElementById('addCompTeachers').value.trim();
+
+            setLoading(true, 'กำลังเพิ่มวง / โรงเรียน...');
+            try {
+                const data = await apiPost('/api/admin/competitors/add', 'add_competitor', {
+                    admin_id: currentJudge.id,
+                    category_id: catId,
+                    order_no: orderVal,
+                    school_name: schoolName,
+                    affiliation_group: affiliation,
+                    students_info: students,
+                    teachers_info: teachers
+                });
+                alert(data.message || 'เพิ่มวง / โรงเรียนเรียบร้อยแล้ว');
+                closeAddCompetitorModal();
+                await loadCategories();
+                if (currentCategory && currentCategory.id === catId) {
+                    await loadCompetitors(catId);
+                } else {
+                    const targetCat = categoriesList.find(c => c.id === catId);
+                    if (targetCat) await selectCategory(targetCat, false);
+                }
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function deleteCompetitor(compId, schoolName) {
+            if (!confirm(`ต้องการลบ "${schoolName}" ออกจากรายการแข่งขันนี้หรือไม่?`)) return;
+            setLoading(true, 'กำลังลบข้อมูล...');
+            try {
+                const data = await apiPost('/api/admin/competitors/delete', 'delete_competitor', {
+                    admin_id: currentJudge.id,
+                    competitor_id: compId
+                });
+                alert(data.message);
+                await loadCompetitors(currentCategory.id);
             } catch (err) {
                 alert(err.message);
             } finally {
