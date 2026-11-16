@@ -579,7 +579,12 @@
                 return data;
             } else {
                 const qs = new URLSearchParams({ action: gasAction, ...gasParams });
-                const res = await fetch(`${GAS_WEBAPP_URL}?${qs.toString()}`);
+                let res;
+                try {
+                    res = await fetch(`${GAS_WEBAPP_URL}?${qs.toString()}`);
+                } catch (netErr) {
+                    throw new Error('ไม่สามารถเชื่อมต่อ Google Apps Script ได้ (Failed to fetch)\n\nกรุณาให้ประธานกรรมการเปิดหน้า Apps Script เพื่อกดอนุญาตสิทธิ์ (Run: ensureSeeded_) และตั้งค่า Deploy > Manage deployments ให้ "Who has access" เป็น "Anyone" ก่อนใช้งานครับ');
+                }
                 const text = await res.text();
                 let data;
                 try {
@@ -603,11 +608,16 @@
                 if (!res.ok) throw new Error(data.detail || 'ดำเนินการไม่สำเร็จ');
                 return data;
             } else {
-                const res = await fetch(GAS_WEBAPP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: gasAction, ...body })
-                });
+                let res;
+                try {
+                    res = await fetch(GAS_WEBAPP_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: gasAction, ...body })
+                    });
+                } catch (netErr) {
+                    throw new Error('ไม่สามารถเชื่อมต่อ Google Apps Script ได้ (Failed to fetch)\n\nกรุณาให้ประธานกรรมการเปิดหน้า Apps Script เพื่อกดอนุญาตสิทธิ์ (Run: ensureSeeded_) และตั้งค่า Deploy > Manage deployments ให้ "Who has access" เป็น "Anyone" ก่อนใช้งานครับ');
+                }
                 const text = await res.text();
                 let data;
                 try {
