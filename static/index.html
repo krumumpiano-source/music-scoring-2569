@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ระบบลงคะแนนการแข่งขันวงดนตรี - งานศิลปหัตถกรรมนักเรียน 2569</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./qrcode.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                        heading: ['Kanit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Kanit', sans-serif;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .touch-manipulation {
+            touch-action: manipulation;
+        }
+        .scroll-touch {
+            -webkit-overflow-scrolling: touch;
+        }
+        #qrSvgWrapper svg {
+            width: 210px;
+            height: 210px;
+            display: block;
+            margin: 0 auto;
+        }
+        @media print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            .no-print { display: none !important; }
+            .print-break { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between antialiased">
+
+    <!-- Global Loading Overlay -->
+    <div id="globalLoading" class="hidden fixed inset-0 z-[100] bg-slate-900/35 backdrop-blur-[1px] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl px-6 py-4 shadow-xl border border-slate-200 flex items-center gap-3">
+            <div class="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-sm font-semibold text-slate-800" id="globalLoadingText">กำลังประมวลผล...</span>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <header class="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-40 no-print">
+        <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer min-w-0" onclick="goToHome()">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-sm shrink-0">
+                    <i data-lucide="music" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-base font-bold text-slate-900 leading-tight truncate">ระบบตัดสินการแข่งขันวงดนตรี</h1>
+                    <p class="text-[10px] sm:text-[11px] text-slate-500 truncate">งานศิลปหัตถกรรมนักเรียน ครั้งที่ 74 • สพม.พะเยา</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+                <!-- Admin Requests Button -->
+                <button id="adminPanelBtn" onclick="openAdminModal()" class="hidden relative items-center space-x-1 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 transition touch-manipulation">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i>
+                    <span class="hidden sm:inline">จัดการคำขอแก้ไข</span>
+                    <span id="pendingBadge" class="hidden px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-600 text-white">0</span>
+                </button>
+
+                <button id="summaryNavBtn" onclick="showSummaryView()" class="hidden items-center space-x-1 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 transition touch-manipulation">
+                    <i data-lucide="trophy" class="w-4 h-4 text-amber-600"></i>
+                    <span>สรุปคะแนน</span>
+                </button>
+
+                <div id="userHeaderBadge" class="hidden items-center space-x-1.5 sm:space-x-2 pl-1.5 sm:pl-2 border-l border-slate-200">
+                    <div class="text-right hidden md:block">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span id="judgeAdminTag" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold">ประธานกรรมการ</span>
+                            <span id="judgeNameBadge" class="text-xs font-bold text-slate-800">กรรมการ</span>
+                        </div>
+                        <div id="judgeSchoolBadge" class="text-[11px] text-slate-500">โรงเรียน</div>
+                    </div>
+                    <button id="changePinHeaderBtn" onclick="openChangePinModal()" title="เปลี่ยนรหัส PIN" class="hidden p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition touch-manipulation">
+                        <i data-lucide="key" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="logoutJudge()" title="ออกจากระบบ" class="p-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition touch-manipulation">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl w-full mx-auto p-3.5 sm:p-6 flex-1">
+
+        <!-- VIEW 1: CHAIRMAN ONLY LOGIN -->
+        <section id="authSection" class="max-w-md mx-auto my-4 sm:my-10">
+            <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+                <div class="text-center mb-6">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-md">
+                        <i data-lucide="shield-check" class="w-7 h-7"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-900">เข้าสู่ระบบประธานกรรมการ</h2>
+                    <p class="text-xs text-slate-500 mt-1">เฉพาะประธานกรรมการเท่านั้น เพื่อเปิดรายการและสร้าง QR Code ให้กรรมการสแกน</p>
+                </div>
+
+                <div class="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+                    <i data-lucide="user-cog" class="w-4 h-4 text-amber-700 mt-0.5 shrink-0"></i>
+                    <div>
+                        <div class="font-bold">นายพงศธร โพธิแก้ว (ประธานกรรมการ / แอดมิน)</div>
+                        <div class="mt-0.5 text-amber-800">เบอร์โทร: <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 font-mono font-bold">0956961606</code> • PIN เริ่มต้น: <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 font-mono font-bold">1234</code></div>
+                    </div>
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">เบอร์โทรศัพท์ประธานกรรมการ</label>
+                        <div class="relative">
+                            <i data-lucide="phone" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                            <input type="tel" inputmode="tel" autocomplete="tel" id="loginPhone" required placeholder="0956961606"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">รหัส PIN</label>
+                            <span class="text-[11px] text-slate-400">PIN เริ่มต้นคือ 1234</span>
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                            <input type="password" inputmode="numeric" id="loginPin" required placeholder="••••" maxlength="6"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-slate-900 tracking-widest focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition touch-manipulation">
+                        เข้าสู่ระบบประธานกรรมการ
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-5 border-t border-slate-100 text-center">
+                    <div class="inline-flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200 text-left">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-slate-700 shrink-0"></i>
+                        <span>สำหรับกรรมการท่านอื่น กรุณาสแกน <strong>QR Code</strong> จากประธานกรรมการเพื่อเข้าสู่ระบบตัดสิน</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 1B: JUDGE QR CHECK-IN -->
+        <section id="qrCheckinSection" class="hidden max-w-lg mx-auto my-2 sm:my-8">
+            <div class="bg-white p-5 sm:p-7 rounded-2xl shadow-sm border border-slate-200">
+                <div class="border-b border-slate-100 pb-4 mb-5">
+                    <span id="qrCatCode" class="px-2.5 py-1 rounded-lg bg-slate-900 text-amber-400 font-mono text-xs font-bold">รหัส ...</span>
+                    <h2 id="qrCatName" class="text-base sm:text-lg font-bold text-slate-900 mt-2">ชื่อรายการแข่งขัน</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">กรุณาเลือกชื่อของท่าน และกรอกอีเมลกับเบอร์โทรศัพท์เพื่อเข้าตัดสิน</p>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-slate-700 mb-2.5">
+                        1. เลือกรายชื่อกรรมการของท่าน <span class="text-red-500">*</span>
+                    </label>
+                    <div id="qrJudgeSelectList" class="space-y-2.5"></div>
+                </div>
+
+                <form id="qrCheckinForm" onsubmit="handleQrCheckin(event)" class="hidden space-y-4 pt-4 border-t border-slate-200">
+                    <input type="hidden" id="qrSelectedJudgeId">
+                    <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                        ท่านเลือก: <strong id="qrSelectedJudgeName" class="text-slate-900"></strong>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">2. กรอกอีเมลของท่าน <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                            <input type="email" inputmode="email" autocomplete="email" id="qrJudgeEmail" required placeholder="example@school.ac.th"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">3. กรอกเบอร์โทรศัพท์ของท่าน <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <i data-lucide="phone" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                            <input type="tel" inputmode="tel" autocomplete="tel" id="qrJudgePhone" required placeholder="08xxxxxxxx"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 touch-manipulation">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-400"></i>
+                        <span>ยืนยันตัวตนและเข้าสู่หน้าให้คะแนน</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VIEW 2: CATEGORY SELECTION -->
+        <section id="categorySection" class="hidden">
+            <div class="mb-5 sm:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900">เลือกรายการแข่งขัน</h2>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">เลือกรายการเพื่อแสดง QR Code ให้กรรมการสแกน และเข้าไปตัดสินให้คะแนน</p>
+                </div>
+                <div class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs bg-white text-slate-700 border border-slate-200 shadow-xs self-start md:self-auto">
+                    <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-600 shrink-0"></i>
+                    <span id="judgeProfileText" class="font-medium">กรรมการ</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5" id="categoryCardsContainer"></div>
+        </section>
+
+        <!-- VIEW 3: COMPETITORS LIST -->
+        <section id="competitorSection" class="hidden">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <button onclick="backToCategories()" class="inline-flex items-center text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition touch-manipulation">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-1.5"></i> ย้อนกลับไปหน้ารายการ
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="showQrTopBtn" onclick="openQrModalForCurrent()" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition touch-manipulation">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        <span>แสดง QR Code</span>
+                    </button>
+                    <span id="categoryBadgeCode" class="text-xs px-3 py-2 rounded-xl bg-slate-900 text-amber-400 font-mono font-bold">
+                        รหัส 135
+                    </span>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-2xl mb-5 border border-slate-200 shadow-xs">
+                <h2 id="currentCategoryTitle" class="text-base sm:text-xl font-bold text-slate-900">ชื่อรายการ</h2>
+                <p id="currentCategorySub" class="text-xs text-slate-500 mt-1">รายละเอียด</p>
+                <div id="categoryCommitteeBadges" class="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100 text-[11px]"></div>
+            </div>
+
+            <div id="competitorsListContainer" class="space-y-4"></div>
+        </section>
+
+        <!-- QR CODE MODAL -->
+        <div id="qrModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs overflow-y-auto scroll-touch">
+            <div class="bg-white max-w-lg w-full rounded-2xl border border-slate-200 shadow-2xl p-5 sm:p-6 my-4 max-h-[92dvh] overflow-y-auto scroll-touch">
+                <div class="flex items-start justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <span id="qrModalCode" class="px-2 py-0.5 rounded bg-slate-900 text-amber-400 font-mono text-[11px] font-bold">รหัส ...</span>
+                        <h3 id="qrModalTitle" class="text-base sm:text-lg font-bold text-slate-900 mt-1">QR Code เข้าตัดสิน</h3>
+                    </div>
+                    <button onclick="closeQrModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 touch-manipulation">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="py-4 text-center">
+                    <p class="text-xs text-slate-600 mb-3">ให้คณะกรรมการสแกน QR Code ด้านล่างด้วยกล้องมือถือ/iPad เพื่อเลือกชื่อและกรอกอีเมลกับเบอร์โทรเข้าตัดสิน</p>
+                    <div id="qrSvgWrapper" class="inline-block p-3 sm:p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm"></div>
+
+                    <div id="qrIpSelectorRow" class="hidden mt-3 flex items-center justify-center gap-2 text-xs">
+                        <label class="text-slate-500">เลือก IP วง Wi-Fi:</label>
+                        <select id="qrIpSelect" onchange="updateQrUrlWithSelectedIp()" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-mono text-base sm:text-xs text-slate-800"></select>
+                    </div>
+
+                    <div class="mt-3 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                        <div class="text-[11px] text-slate-600 font-mono break-all text-left flex-1" id="qrUrlText"></div>
+                        <button type="button" onclick="copyQrUrl()" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold touch-manipulation">
+                            คัดลอก
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-700">สถานะกรรมการในรายการนี้</span>
+                        <button onclick="refreshQrJudgeStatus()" class="text-xs text-amber-700 hover:underline flex items-center gap-1 font-semibold py-1 px-2 touch-manipulation">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> รีเฟรชสถานะ
+                        </button>
+                    </div>
+                    <div id="qrModalJudgesStatus" class="space-y-1.5 max-h-40 overflow-y-auto text-xs scroll-touch"></div>
+                </div>
+
+                <div class="mt-5 pt-3 border-t border-slate-100">
+                    <button onclick="closeQrModal()" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition touch-manipulation">
+                        ปิดหน้าต่าง QR Code (เข้าสู่หน้าลงคะแนน)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: DETAILED RUBRIC SCORING MODAL -->
+        <div id="scoringModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div class="bg-white max-w-3xl w-full rounded-t-2xl sm:rounded-2xl border border-slate-200 shadow-2xl max-h-[94dvh] flex flex-col overflow-hidden">
+                <div class="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200 flex items-start justify-between bg-slate-50 shrink-0">
+                    <div class="min-w-0 pr-2">
+                        <div class="text-[11px] sm:text-xs font-semibold text-amber-700 mb-0.5 truncate" id="modalCategoryName">รายการแข่งขัน</div>
+                        <h3 id="modalSchoolName" class="text-base sm:text-xl font-bold text-slate-900 truncate">โรงเรียน...</h3>
+                        <p id="modalAffiliation" class="text-xs text-slate-500">สังกัด...</p>
+                    </div>
+                    <button onclick="closeScoringModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 transition touch-manipulation shrink-0">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="scoringForm" onsubmit="handleScoreSubmit(event)" class="p-4 sm:p-5 overflow-y-auto scroll-touch space-y-5 flex-1">
+                    <input type="hidden" id="modalCompetitorId">
+                    <input type="hidden" id="modalIsEditMode" value="0">
+
+                    <div id="editReasonContainer" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-300 space-y-3">
+                        <div class="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                            <i data-lucide="file-edit" class="w-4 h-4 text-amber-700"></i>
+                            <span>บันทึกการแก้ไขคะแนน (ต้องระบุจุดที่แก้ไขและเหตุผล)</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-900 mb-1">จุดที่แก้ไข (หัวข้อใดบ้าง) <span class="text-red-600">*</span></label>
+                            <input type="text" id="editFieldsInput" placeholder="เช่น หัวข้อ 1.2 สไตล์การบรรเลง, หัวข้อ 2.3 Intonation"
+                                class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:outline-none focus:border-amber-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-900 mb-1">เหตุผลในการแก้ไขคะแนน <span class="text-red-600">*</span></label>
+                            <textarea id="editReasonInput" rows="2" placeholder="ระบุเหตุผลที่ต้องแก้ไขคะแนนอย่างชัดเจน..."
+                                class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:outline-none focus:border-amber-600"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600">
+                        <div class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                            <i data-lucide="sliders" class="w-3.5 h-3.5 text-slate-500"></i>
+                            เกณฑ์ระดับคะแนนรูบิค (หัวข้อย่อยละ 10 คะแนน — แตะเลือกหรือพิมพ์ทศนิยม .5 ได้):
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                            <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium">ดีเยี่ยม: 9–10</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-medium">ดีมาก: 8–8.5</span>
+                            <span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200 font-medium">ดี: 7–7.5</span>
+                            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium">พอใช้: 6–6.5</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 font-medium">ปรับปรุง: 0–5.5</span>
+                        </div>
+                    </div>
+
+                    <div id="rubricSectionsContainer" class="space-y-5"></div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">ข้อเสนอแนะ / คำวิจารณ์เพื่อการพัฒนา (ถ้ามี)</label>
+                        <textarea id="modalComment" rows="2" placeholder="ข้อเสนอแนะสำหรับวงดนตรี..."
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition"></textarea>
+                    </div>
+                </form>
+
+                <div class="px-4 sm:px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+                    <div class="flex items-center justify-between sm:justify-start gap-3">
+                        <div>
+                            <div class="text-[11px] font-semibold text-slate-500">คะแนนรวมสุทธิ</div>
+                            <div class="text-xl sm:text-2xl font-extrabold text-slate-900" id="liveTotalScoreDisplay">0.00 <span class="text-xs font-normal text-slate-500">/ 100</span></div>
+                        </div>
+                        <div id="liveMedalBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
+                            รอการให้คะแนน
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeScoringModal()" class="flex-1 sm:flex-none px-4 py-3 sm:py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition touch-manipulation">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" form="scoringForm" class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition touch-manipulation">
+                            บันทึกคะแนน
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4B: REQUEST EDIT MODAL -->
+        <div id="requestEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div class="bg-white max-w-md w-full rounded-2xl border border-slate-200 shadow-2xl p-5 sm:p-6">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="lock-open" class="w-4 h-4 text-amber-600"></i>
+                        <span>ขออนุญาตแก้ไขคะแนน</span>
+                    </h3>
+                    <button onclick="closeRequestEditModal()" class="p-1 text-slate-400 hover:text-slate-800 touch-manipulation">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-600 mb-4" id="reqEditSchoolLabel">โรงเรียน...</p>
+                <form onsubmit="handleRequestEditSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="reqEditCompetitorId">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">จุดที่ต้องการแก้ไข <span class="text-red-500">*</span></label>
+                        <input type="text" id="reqEditFields" required placeholder="เช่น หัวข้อ 1.3 ความกลมกลืน, หัวข้อ 3.2 สำเนียง"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">เหตุผลในการขอแก้ไขคะแนน <span class="text-red-500">*</span></label>
+                        <textarea id="reqEditReason" rows="3" required placeholder="ระบุเหตุผลที่ต้องแก้ไขคะแนนเพื่อเสนอต่อประธานกรรมการ..."
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900"></textarea>
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="closeRequestEditModal()" class="flex-1 py-3 text-xs font-semibold text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 touch-manipulation">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="flex-1 py-3 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs touch-manipulation">
+                            ส่งคำขอต่อประธาน
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 5: SUMMARY & AUDIT REPORT -->
+        <section id="summarySection" class="hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <button onclick="backFromSummary()" class="no-print inline-flex items-center text-xs font-semibold text-slate-600 hover:text-slate-900 mb-2 py-1 touch-manipulation">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> กลับไปหน้าตัดสิน
+                    </button>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="award" class="text-amber-600 w-6 h-6"></i>
+                        <span>สรุปผลการแข่งขันและรายงานคะแนน</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-1">
+                        มหกรรมวิชาการและงานศิลปหัตถกรรมนักเรียน (Soft Power) ครั้งที่ 74 ปีการศึกษา 2569 จังหวัดพะเยา
+                    </p>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        สังกัดสำนักงานเขตพื้นที่การศึกษามัธยมศึกษาพะเยา • ณ โรงเรียนพะเยาพิทยาคม • ระหว่างวันที่ 16-18 เดือน พฤศจิกายน พ.ศ. 2569
+                    </p>
+                </div>
+
+                <div class="flex items-center space-x-2 no-print">
+                    <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-white flex items-center space-x-1.5 shadow-xs transition touch-manipulation">
+                        <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
+                        <span>พิมพ์รายงานสรุปผล</span>
+                    </button>
+                    <button onclick="fetchResults()" class="p-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition touch-manipulation" title="รีเฟรชคะแนน">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultsCategoryContainer" class="space-y-6"></div>
+        </section>
+
+        <!-- VIEW 6: CHAIRMAN / ADMIN MODAL -->
+        <div id="adminModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div class="bg-white max-w-3xl w-full rounded-t-2xl sm:rounded-2xl border border-slate-200 shadow-2xl max-h-[90dvh] flex flex-col overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-amber-600"></i>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900">ศูนย์ควบคุมประธานกรรมการ (นายพงศธร โพธิแก้ว)</h3>
+                    </div>
+                    <button onclick="closeAdminModal()" class="text-slate-400 hover:text-slate-800 p-1.5 touch-manipulation">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="flex border-b border-slate-200 px-4 sm:px-5 bg-white shrink-0">
+                    <button id="adminTabReq" onclick="switchAdminTab('requests')" class="py-3 px-3 sm:px-4 text-xs font-bold border-b-2 border-slate-900 text-slate-900 touch-manipulation">
+                        คำขอแก้ไขคะแนน
+                    </button>
+                    <button id="adminTabJudges" onclick="switchAdminTab('judges')" class="py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 touch-manipulation">
+                        สถานะกรรมการ / รีเซ็ต
+                    </button>
+                </div>
+
+                <div class="p-4 sm:p-5 overflow-y-auto scroll-touch flex-1">
+                    <div id="adminRequestsPane" class="space-y-3"></div>
+                    <div id="adminJudgesPane" class="hidden space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 7: CHANGE PIN MODAL -->
+        <div id="pinModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div class="bg-white max-w-sm w-full rounded-2xl border border-slate-200 p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="key" class="w-4 h-4 text-amber-600"></i> ตั้งรหัส PIN ใหม่ (ประธานกรรมการ)
+                    </h3>
+                    <button onclick="closeChangePinModal()" class="p-1 text-slate-400 hover:text-slate-800">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <form onsubmit="handleChangePin(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รหัส PIN เดิม</label>
+                        <input type="password" inputmode="numeric" id="oldPinInput" required maxlength="6"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รหัส PIN ใหม่ (4-6 หลัก)</label>
+                        <input type="password" inputmode="numeric" id="newPinInput" required maxlength="6"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ยืนยันรหัส PIN ใหม่</label>
+                        <input type="password" inputmode="numeric" id="confirmPinInput" required maxlength="6"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-slate-900">
+                    </div>
+                    <div class="pt-2 flex gap-2">
+                        <button type="button" onclick="closeChangePinModal()" class="flex-1 py-2.5 text-xs font-semibold text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 touch-manipulation">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="flex-1 py-2.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl touch-manipulation">
+                            บันทึก PIN
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500 no-print">
+        <p class="font-semibold text-slate-600">มหกรรมวิชาการและงานศิลปหัตถกรรมนักเรียน (Soft Power) ครั้งที่ 74 ปีการศึกษา 2569 จังหวัดพะเยา</p>
+        <p class="mt-0.5">สังกัดสำนักงานเขตพื้นที่การศึกษามัธยมศึกษาพะเยา • ณ โรงเรียนพะเยาพิทยาคม • ระหว่างวันที่ 16-18 พฤศจิกายน พ.ศ. 2569</p>
+    </footer>
+
+    <script>
+        // Backend mode detection: Use Google Apps Script online when not running on localhost/LAN
+        const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxW0PNZe8jGgO6t-KwZJg0D2nMQTGxMjqhxA4F6-UsNy6G43nWs2hgmY3WJDjrvZJAELw/exec';
+        const IS_LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname) || /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname);
+
+        function setLoading(show, text = 'กำลังประมวลผล...') {
+            const el = document.getElementById('globalLoading');
+            document.getElementById('globalLoadingText').innerText = text;
+            if (show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
+
+        async function apiGet(localPath, gasAction, gasParams = {}) {
+            if (IS_LOCAL) {
+                const res = await fetch(localPath);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'เกิดข้อผิดพลาด');
+                return data;
+            } else {
+                const qs = new URLSearchParams({ action: gasAction, ...gasParams });
+                const res = await fetch(`${GAS_WEBAPP_URL}?${qs.toString()}`);
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('ระบบ Google Sheets ยังไม่เปิดสิทธิ์การเข้าถึงสาธารณะ (กรุณาให้ประธานกรรมการกดยืนยันสิทธิ์ใน Apps Script 1 ครั้ง)');
+                }
+                if (!data.ok) throw new Error(data.detail || 'เกิดข้อผิดพลาด');
+                return data.data;
+            }
+        }
+
+        async function apiPost(localPath, gasAction, body) {
+            if (IS_LOCAL) {
+                const res = await fetch(localPath, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'ดำเนินการไม่สำเร็จ');
+                return data;
+            } else {
+                const res = await fetch(GAS_WEBAPP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: gasAction, ...body })
+                });
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('ระบบ Google Sheets ยังไม่เปิดสิทธิ์การเข้าถึงสาธารณะ (กรุณาให้ประธานกรรมการกดยืนยันสิทธิ์ใน Apps Script 1 ครั้ง)');
+                }
+                if (!data.ok) throw new Error(data.detail || 'ดำเนินการไม่สำเร็จ');
+                return data;
+            }
+        }
+
+        const RUBRIC_SECTIONS = [
+            {
+                id: 'artistic',
+                title: '๑. ศิลปะในการบรรเลง (Artistic Quality)',
+                maxScore: 40,
+                items: [
+                    { key: 'art_1', code: '1.1', label: 'การสร้างบุคลิกของน้ำเสียงที่เหมาะสมกับบทประพันธ์ (Balance Ensemble)', desc: 'ความชัดเจนและเอกลักษณ์ของน้ำเสียงที่สอดคล้องกับยุคสมัยและแนวเพลง' },
+                    { key: 'art_2', code: '1.2', label: 'สไตล์การบรรเลงที่เหมาะสมกับบทประพันธ์ (Style, Performance Practice)', desc: 'การถ่ายทอดสำเนียง จังหวะ และรูปแบบการบรรเลงตรงตามลักษณะบทประพันธ์' },
+                    { key: 'art_3', code: '1.3', label: 'ความกลมกลืนของการประสานเสียงที่เหมาะสม (Harmony, Texture)', desc: 'ความลงตัวของแนวประสาน พื้นผิวทางดนตรี และความต่อเนื่องของประโยคเพลง' },
+                    { key: 'art_4', code: '1.4', label: 'สุนทรียภาพของการบรรเลง (Aesthetic, Musicianship)', desc: 'อารมณ์เพลง ไดนามิก การสื่อสารทางดนตรี และความไพเราะน่าฟัง' },
+                ]
+            },
+            {
+                id: 'ensemble',
+                title: '๒. การรวมวง (Ensemble)',
+                maxScore: 30,
+                items: [
+                    { key: 'ens_1', code: '2.1', label: 'ความสมดุลของเสียงในการบรรเลง (Ensemble Balance)', desc: 'สัดส่วนความดัง-เบา ระหว่างกลุ่มเครื่องดนตรี แนวทำนองหลัก และแนวประสาน' },
+                    { key: 'ens_2', code: '2.2', label: 'ความพร้อมเพรียงในสำเนียงที่เหมาะสมในการบรรเลง (Articulations)', desc: 'การเริ่ม-จบวรรคเพลง การตัดคำ และการออกสำเนียงพร้อมกันทั้งวง' },
+                    { key: 'ens_3', code: '2.3', label: 'ความแม่นยำของระดับเสียง (Intonation)', desc: 'ความตรงของระดับเสียงเมื่อบรรเลงร่วมกันเป็นกลุ่มและทั้งวง' },
+                ]
+            },
+            {
+                id: 'technique',
+                title: '๓. เทคนิค (Techniques)',
+                maxScore: 30,
+                items: [
+                    { key: 'tech_1', code: '3.1', label: 'บุคลิกของน้ำเสียงของเครื่องดนตรีแต่ละประเภท (Tone Color)', desc: 'คุณภาพการเป่า/ดีด/สี/ตี และความคุมโทนเสียงเฉพาะตัวของเครื่องดนตรี' },
+                    { key: 'tech_2', code: '3.2', label: 'การใช้สำเนียงการบรรเลงที่เหมาะสมกับวรรคเพลง (Articulations)', desc: 'ทักษะการควบคุม Staccato, Legato, Accent และเทคนิคเฉพาะทาง' },
+                    { key: 'tech_3', code: '3.3', label: 'ความแม่นยำของระดับเสียง (Intonation)', desc: 'ทักษะการควบคุมระดับเสียงของนักดนตรีแต่ละบุคคลในทุกช่วงเสียง' },
+                ]
+            }
+        ];
+
+        const QUICK_LEVELS = [
+            { label: 'ปรับปรุง', val: 5.0 },
+            { label: 'พอใช้', val: 6.5 },
+            { label: 'ดี', val: 7.5 },
+            { label: 'ดีมาก', val: 8.5 },
+            { label: 'ดีเยี่ยม', val: 9.5 },
+        ];
+
+        let currentJudge = null;
+        let categoriesList = [];
+        let currentCategory = null;
+        let currentCompetitors = [];
+        let serverInfoData = { ips: [], port: 8000 };
+        let adminPollTimer = null;
+        let qrModalCategory = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            buildRubricForm();
+
+            if (IS_LOCAL) {
+                try {
+                    const res = await fetch('/api/server-info');
+                    serverInfoData = await res.json();
+                } catch (e) {}
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const catParam = params.get('cat');
+
+            const savedJudge = localStorage.getItem('music_judge_session_2569');
+            if (savedJudge) {
+                try {
+                    currentJudge = JSON.parse(savedJudge);
+                } catch (e) {
+                    localStorage.removeItem('music_judge_session_2569');
+                    currentJudge = null;
+                }
+            }
+
+            if (catParam) {
+                if (currentJudge) {
+                    updateJudgeHeader();
+                    await openScannedCategoryDirectly(catParam);
+                    startAdminPollingIfNeeded();
+                } else {
+                    await showQrCheckinView(catParam);
+                }
+            } else if (currentJudge) {
+                updateJudgeHeader();
+                showCategoryView();
+                startAdminPollingIfNeeded();
+            } else {
+                showAuthView();
+            }
+        });
+
+        function buildRubricForm() {
+            const container = document.getElementById('rubricSectionsContainer');
+            container.innerHTML = '';
+
+            RUBRIC_SECTIONS.forEach(sec => {
+                const secDiv = document.createElement('div');
+                secDiv.className = "rounded-2xl border border-slate-200 overflow-hidden";
+
+                const itemsHtml = sec.items.map(item => `
+                    <div class="p-3.5 sm:p-4 border-t border-slate-100 bg-white hover:bg-slate-50/50 transition">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex-1">
+                                <div class="text-sm font-bold text-slate-900">
+                                    <span class="text-amber-700 font-mono mr-1">${item.code}</span> ${item.label}
+                                </div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">${item.desc}</div>
+                                <div class="flex flex-wrap gap-1.5 mt-2.5">
+                                    ${QUICK_LEVELS.map(lv => `
+                                        <button type="button" onclick="setSubScore('${item.key}', ${lv.val})"
+                                            class="px-2.5 py-1.5 sm:py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-900 hover:text-white hover:border-slate-900 text-slate-700 transition touch-manipulation">
+                                            ${lv.label} (${lv.val})
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-end space-x-2 shrink-0 pt-1 sm:pt-0">
+                                <input type="number" inputmode="decimal" id="input_${item.key}" min="0" max="10" step="0.5" required
+                                    oninput="calculateLiveTotal()" placeholder="0-10"
+                                    class="w-24 sm:w-20 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 sm:py-2 text-right font-bold text-base text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900">
+                                <span class="text-xs font-semibold text-slate-400">/ 10</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                secDiv.innerHTML = `
+                    <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between gap-2">
+                        <h4 class="text-xs sm:text-sm font-bold">${sec.title}</h4>
+                        <span class="text-xs font-mono bg-white/10 px-2.5 py-1 rounded-lg shrink-0">
+                            รวม <strong id="secTotal_${sec.id}" class="text-amber-300">0.0</strong> / ${sec.maxScore}
+                        </span>
+                    </div>
+                    <div>${itemsHtml}</div>
+                `;
+                container.appendChild(secDiv);
+            });
+        }
+
+        function setSubScore(key, val) {
+            const el = document.getElementById(`input_${key}`);
+            if (el) {
+                el.value = val;
+                calculateLiveTotal();
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+
+            setLoading(true, 'กำลังตรวจสอบสิทธิ์ประธานกรรมการ...');
+            try {
+                const data = await apiPost('/api/judges/login', 'login', { phone, pin });
+                currentJudge = data.judge;
+                localStorage.setItem('music_judge_session_2569', JSON.stringify(currentJudge));
+                updateJudgeHeader();
+                await showCategoryView();
+                startAdminPollingIfNeeded();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function showQrCheckinView(catId) {
+            hideAllSections();
+            document.getElementById('qrCheckinSection').classList.remove('hidden');
+
+            setLoading(true, 'กำลังโหลดข้อมูลรายการแข่งขัน...');
+            try {
+                const cat = await apiGet(`/api/categories/${catId}/info`, 'category_info', { category_id: catId });
+                currentCategory = cat;
+
+                document.getElementById('qrCatCode').innerText = `รหัส ${cat.code}`;
+                document.getElementById('qrCatName').innerText = cat.name;
+
+                const listEl = document.getElementById('qrJudgeSelectList');
+                listEl.innerHTML = '';
+
+                cat.judges.forEach(j => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-400 transition flex items-center justify-between gap-2 qr-judge-btn touch-manipulation";
+                    btn.onclick = () => selectJudgeForQrCheckin(j, btn);
+
+                    const statusBadge = j.is_verified
+                        ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold shrink-0">ลงชื่อแล้ว</span>'
+                        : '<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 font-medium shrink-0">เลือกชื่อนี้</span>';
+
+                    btn.innerHTML = `
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-slate-900">${j.fullname}</div>
+                            <div class="text-[11px] text-slate-500">${j.role} • ${j.school}</div>
+                        </div>
+                        ${statusBadge}
+                    `;
+                    listEl.appendChild(btn);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                alert(err.message || 'ไม่สามารถโหลดข้อมูลรายการแข่งขันได้');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function selectJudgeForQrCheckin(judge, btnEl) {
+            document.querySelectorAll('.qr-judge-btn').forEach(b => {
+                b.classList.remove('ring-2', 'ring-slate-900', 'bg-amber-50', 'border-amber-400');
+            });
+            btnEl.classList.add('ring-2', 'ring-slate-900', 'bg-amber-50', 'border-amber-400');
+
+            document.getElementById('qrSelectedJudgeId').value = judge.id;
+            document.getElementById('qrSelectedJudgeName').innerText = `${judge.fullname} (${judge.role})`;
+            document.getElementById('qrCheckinForm').classList.remove('hidden');
+            document.getElementById('qrCheckinForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            lucide.createIcons();
+        }
+
+        async function handleQrCheckin(e) {
+            e.preventDefault();
+            const judgeId = parseInt(document.getElementById('qrSelectedJudgeId').value);
+            const email = document.getElementById('qrJudgeEmail').value.trim();
+            const phone = document.getElementById('qrJudgePhone').value.trim();
+
+            setLoading(true, 'กำลังยืนยันตัวตนกรรมการ...');
+            try {
+                const data = await apiPost('/api/judges/qr-checkin', 'qr_checkin', {
+                    category_id: currentCategory.id,
+                    judge_id: judgeId,
+                    email: email,
+                    phone: phone
+                });
+                currentJudge = data.judge;
+                localStorage.setItem('music_judge_session_2569', JSON.stringify(currentJudge));
+                updateJudgeHeader();
+                await openScannedCategoryDirectly(currentCategory.id);
+                startAdminPollingIfNeeded();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function openScannedCategoryDirectly(catId) {
+            setLoading(true, 'กำลังโหลดรายชื่อโรงเรียน...');
+            try {
+                categoriesList = await apiGet(`/api/categories?judge_id=${currentJudge.id}`, 'categories', { judge_id: currentJudge.id });
+                const cat = categoriesList.find(c => c.id === catId);
+                if (!cat) {
+                    await showCategoryView();
+                    return;
+                }
+                if (!cat.is_assigned && !currentJudge.is_admin) {
+                    alert('ท่านไม่ได้รับมอบหมายให้ตัดสินในรายการนี้');
+                    await showCategoryView();
+                    return;
+                }
+                await selectCategory(cat, false);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function updateJudgeHeader() {
+            const adminBtn = document.getElementById('adminPanelBtn');
+            const summaryBtn = document.getElementById('summaryNavBtn');
+            const pinBtn = document.getElementById('changePinHeaderBtn');
+
+            if (currentJudge) {
+                document.getElementById('userHeaderBadge').classList.remove('hidden');
+                document.getElementById('userHeaderBadge').classList.add('flex');
+                summaryBtn.classList.remove('hidden');
+                summaryBtn.classList.add('flex');
+                document.getElementById('judgeNameBadge').innerText = currentJudge.fullname;
+                document.getElementById('judgeSchoolBadge').innerText = currentJudge.school;
+
+                const adminTag = document.getElementById('judgeAdminTag');
+                if (currentJudge.is_admin) {
+                    adminTag.classList.remove('hidden');
+                    adminBtn.classList.remove('hidden');
+                    adminBtn.classList.add('flex');
+                    pinBtn.classList.remove('hidden');
+                    document.getElementById('judgeProfileText').innerText = `ประธานกรรมการ: ${currentJudge.fullname}`;
+                } else {
+                    adminTag.classList.add('hidden');
+                    adminBtn.classList.add('hidden');
+                    adminBtn.classList.remove('flex');
+                    pinBtn.classList.add('hidden');
+                    document.getElementById('judgeProfileText').innerText = `กรรมการ: ${currentJudge.fullname}`;
+                }
+            } else {
+                document.getElementById('userHeaderBadge').classList.add('hidden');
+                document.getElementById('userHeaderBadge').classList.remove('flex');
+                summaryBtn.classList.add('hidden');
+                adminBtn.classList.add('hidden');
+            }
+        }
+
+        function startAdminPollingIfNeeded() {
+            if (adminPollTimer) clearInterval(adminPollTimer);
+            if (currentJudge && currentJudge.is_admin) {
+                refreshPendingCount();
+                adminPollTimer = setInterval(refreshPendingCount, 12000);
+            }
+        }
+
+        async function refreshPendingCount() {
+            if (!currentJudge || !currentJudge.is_admin) return;
+            try {
+                const reqs = await apiGet('/api/admin/edit-requests', 'edit_requests');
+                const pending = reqs.filter(r => r.status === 'pending').length;
+                const badge = document.getElementById('pendingBadge');
+                if (pending > 0) {
+                    badge.innerText = pending;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } catch (e) {}
+        }
+
+        function logoutJudge() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                if (adminPollTimer) clearInterval(adminPollTimer);
+                localStorage.removeItem('music_judge_session_2569');
+                currentJudge = null;
+                currentCategory = null;
+                updateJudgeHeader();
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('cat')) {
+                    showQrCheckinView(params.get('cat'));
+                } else {
+                    showAuthView();
+                }
+            }
+        }
+
+        function openChangePinModal() {
+            document.getElementById('pinModal').classList.remove('hidden');
+            document.getElementById('oldPinInput').value = '';
+            document.getElementById('newPinInput').value = '';
+            document.getElementById('confirmPinInput').value = '';
+            lucide.createIcons();
+        }
+        function closeChangePinModal() { document.getElementById('pinModal').classList.add('hidden'); }
+
+        async function handleChangePin(e) {
+            e.preventDefault();
+            const old_pin = document.getElementById('oldPinInput').value.trim();
+            const new_pin = document.getElementById('newPinInput').value.trim();
+            const confirm_pin = document.getElementById('confirmPinInput').value.trim();
+            if (new_pin !== confirm_pin) return alert('รหัส PIN ใหม่ไม่ตรงกัน');
+            if (new_pin.length < 4) return alert('รหัส PIN ต้องมีอย่างน้อย 4 หลัก');
+
+            setLoading(true, 'กำลังเปลี่ยนรหัส PIN...');
+            try {
+                await apiPost('/api/judges/update-pin', 'update_pin', { judge_id: currentJudge.id, old_pin, new_pin });
+                alert('ตั้งรหัส PIN ใหม่เรียบร้อยแล้ว');
+                closeChangePinModal();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function hideAllSections() {
+            ['authSection', 'qrCheckinSection', 'categorySection', 'competitorSection', 'summarySection'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+        function goToHome() {
+            if (currentJudge) {
+                showCategoryView();
+            } else {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('cat')) showQrCheckinView(params.get('cat'));
+                else showAuthView();
+            }
+        }
+        function showAuthView() { hideAllSections(); document.getElementById('authSection').classList.remove('hidden'); lucide.createIcons(); }
+        async function showCategoryView() {
+            hideAllSections();
+            document.getElementById('categorySection').classList.remove('hidden');
+            await loadCategories();
+            lucide.createIcons();
+        }
+
+        async function loadCategories() {
+            setLoading(true, 'กำลังโหลดรายการแข่งขัน...');
+            try {
+                const jid = currentJudge ? currentJudge.id : '';
+                categoriesList = await apiGet(jid ? `/api/categories?judge_id=${jid}` : '/api/categories', 'categories', jid ? { judge_id: jid } : {});
+
+                const container = document.getElementById('categoryCardsContainer');
+                container.innerHTML = '';
+
+                categoriesList.forEach(cat => {
+                    if (currentJudge && !currentJudge.is_admin && !cat.is_assigned) return;
+
+                    const isAllScored = cat.total_competitors > 0 && cat.scored_competitors === cat.total_competitors;
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-5 rounded-2xl border border-slate-200 hover:border-slate-400 shadow-xs hover:shadow-md transition flex flex-col justify-between";
+
+                    const roleBadge = cat.judge_role
+                        ? `<span class="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">${cat.judge_role}</span>`
+                        : '';
+
+                    const qrBtnHtml = (currentJudge && currentJudge.is_admin)
+                        ? `<button type="button" onclick="event.stopPropagation(); openQrModal('${cat.id}')" class="w-full mb-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 touch-manipulation">
+                               <i data-lucide="qr-code" class="w-4 h-4"></i>
+                               <span>แสดง QR Code ให้กรรมการสแกน</span>
+                           </button>`
+                        : '';
+
+                    card.innerHTML = `
+                        <div class="cursor-pointer" onclick="onCategoryCardClick('${cat.id}')">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-amber-400 font-mono text-xs font-bold">
+                                    รหัส ${cat.code}
+                                </span>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold ${isAllScored ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
+                                    ตัดสินแล้ว ${cat.scored_competitors} / ${cat.total_competitors}
+                                </span>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900 hover:text-amber-700 transition">
+                                ${cat.name}
+                            </h3>
+                            <div class="mt-2 flex items-center justify-between text-xs text-slate-500">
+                                <span>ระดับ: ${cat.level}</span>
+                                ${roleBadge}
+                            </div>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-slate-100">
+                            ${qrBtnHtml}
+                            <button type="button" onclick="onCategoryCardClick('${cat.id}')" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 touch-manipulation">
+                                <span>เข้าสู่หน้าลงคะแนน</span>
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function onCategoryCardClick(catId) {
+            const cat = categoriesList.find(c => c.id === catId);
+            if (!cat) return;
+            const showQr = currentJudge && currentJudge.is_admin;
+            selectCategory(cat, showQr);
+        }
+
+        async function selectCategory(cat, autoOpenQr = false) {
+            currentCategory = cat;
+            hideAllSections();
+            document.getElementById('competitorSection').classList.remove('hidden');
+            document.getElementById('currentCategoryTitle').innerText = cat.name;
+            document.getElementById('currentCategorySub').innerText = `ระดับ: ${cat.level} • จำนวน ${cat.total_competitors} โรงเรียนเข้าประกวด`;
+            document.getElementById('categoryBadgeCode').innerText = `รหัส ${cat.code}`;
+
+            const qrTopBtn = document.getElementById('showQrTopBtn');
+            if (currentJudge && currentJudge.is_admin) {
+                qrTopBtn.classList.remove('hidden');
+                qrTopBtn.classList.add('flex');
+            } else {
+                qrTopBtn.classList.add('hidden');
+                qrTopBtn.classList.remove('flex');
+            }
+
+            document.getElementById('categoryCommitteeBadges').innerHTML = cat.judges.map(j => `
+                <span class="px-2.5 py-1 rounded-lg ${j.is_verified ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600'} border">
+                    <strong class="text-slate-900">${j.role}:</strong> ${j.fullname} ${j.is_verified ? '✓' : ''}
+                </span>
+            `).join('');
+
+            await loadCompetitors(cat.id);
+            if (autoOpenQr) {
+                openQrModal(cat.id);
+            }
+            lucide.createIcons();
+        }
+
+        function backToCategories() {
+            if (window.location.search) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+            showCategoryView();
+        }
+
+        function openQrModalForCurrent() {
+            if (currentCategory) openQrModal(currentCategory.id);
+        }
+
+        async function openQrModal(catId) {
+            const cat = categoriesList.find(c => c.id === catId) || currentCategory;
+            if (!cat) return;
+            qrModalCategory = cat;
+
+            document.getElementById('qrModalCode').innerText = `รหัส ${cat.code}`;
+            document.getElementById('qrModalTitle').innerText = cat.name;
+
+            const ipRow = document.getElementById('qrIpSelectorRow');
+            const ipSelect = document.getElementById('qrIpSelect');
+            const currentHost = window.location.hostname;
+
+            if ((currentHost === 'localhost' || currentHost === '127.0.0.1') && serverInfoData.ips && serverInfoData.ips.length > 0) {
+                ipSelect.innerHTML = serverInfoData.ips.map(ip => `<option value="${ip}">${ip}</option>`).join('');
+                ipRow.classList.remove('hidden');
+            } else {
+                ipRow.classList.add('hidden');
+            }
+
+            updateQrUrlWithSelectedIp();
+            document.getElementById('qrModal').classList.remove('hidden');
+            lucide.createIcons();
+            await refreshQrJudgeStatus();
+        }
+
+        function updateQrUrlWithSelectedIp() {
+            if (!qrModalCategory) return;
+            const currentHost = window.location.hostname;
+            let base = `${window.location.origin}${window.location.pathname}`;
+            if (base.endsWith('index.html')) base = base.slice(0, -10);
+            if (!base.endsWith('/')) base += '/';
+
+            if ((currentHost === 'localhost' || currentHost === '127.0.0.1') && serverInfoData.ips && serverInfoData.ips.length > 0) {
+                const chosenIp = document.getElementById('qrIpSelect').value || serverInfoData.ips[0];
+                base = `http://${chosenIp}:${serverInfoData.port || 8000}/`;
+            }
+
+            const targetUrl = `${base}?cat=${qrModalCategory.id}`;
+            document.getElementById('qrUrlText').innerText = targetUrl;
+
+            const wrapper = document.getElementById('qrSvgWrapper');
+            if (typeof qrcode === 'function') {
+                const qr = qrcode(0, 'M');
+                qr.addData(targetUrl);
+                qr.make();
+                wrapper.innerHTML = qr.createSvgTag(6, 2);
+            } else {
+                wrapper.innerHTML = `<img src="/api/qr?url=${encodeURIComponent(targetUrl)}" alt="QR Code" class="w-52 h-52 mx-auto">`;
+            }
+        }
+
+        function copyQrUrl() {
+            const url = document.getElementById('qrUrlText').innerText;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => alert('คัดลอกลิงก์เรียบร้อยแล้ว'));
+            }
+        }
+
+        async function refreshQrJudgeStatus() {
+            if (!qrModalCategory) return;
+            try {
+                const cat = await apiGet(`/api/categories/${qrModalCategory.id}/info`, 'category_info', { category_id: qrModalCategory.id });
+                const container = document.getElementById('qrModalJudgesStatus');
+                container.innerHTML = cat.judges.map(j => `
+                    <div class="flex items-center justify-between px-3 py-2 rounded-xl border ${j.is_verified ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}">
+                        <div class="min-w-0 pr-2">
+                            <span class="font-bold text-slate-900">${j.fullname}</span>
+                            <span class="text-slate-500 ml-1 text-[11px]">(${j.role})</span>
+                        </div>
+                        ${j.is_verified
+                            ? '<span class="text-[11px] font-bold text-emerald-700 shrink-0">ยืนยันตัวตนแล้ว ✓</span>'
+                            : '<span class="text-[11px] text-slate-400 shrink-0">รอสแกน QR...</span>'}
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').classList.add('hidden');
+        }
+
+        async function loadCompetitors(categoryId) {
+            setLoading(true, 'กำลังโหลดรายชื่อโรงเรียน...');
+            try {
+                const jid = currentJudge ? currentJudge.id : '';
+                currentCompetitors = await apiGet(
+                    jid ? `/api/categories/${categoryId}/competitors?judge_id=${jid}` : `/api/categories/${categoryId}/competitors`,
+                    'competitors',
+                    { category_id: categoryId, judge_id: jid }
+                );
+
+                const container = document.getElementById('competitorsListContainer');
+                container.innerHTML = '';
+
+                currentCompetitors.forEach(c => {
+                    const card = document.createElement('div');
+                    const isApprovedUnlock = c.is_scored && c.is_locked === 0;
+                    const reqStatus = c.latest_edit_request ? c.latest_edit_request.status : null;
+
+                    let borderClass = "border-slate-200";
+                    if (isApprovedUnlock) borderClass = "border-amber-400 ring-1 ring-amber-200";
+                    else if (c.is_scored) borderClass = "border-emerald-300";
+
+                    card.className = `bg-white p-4 sm:p-5 rounded-2xl border ${borderClass} shadow-xs transition`;
+
+                    const studentLines = (c.students_info || '').split('\n').filter(l => l.trim());
+                    const teacherLines = (c.teachers_info || '').split('\n').filter(l => l.trim());
+
+                    let scoreSummaryHtml = '';
+                    if (c.is_scored) {
+                        scoreSummaryHtml = `
+                            <div class="sm:text-right bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-slate-100">
+                                <div class="inline-flex items-center gap-1 text-[11px] font-bold ${isApprovedUnlock ? 'text-amber-700' : 'text-emerald-700'}">
+                                    <i data-lucide="${isApprovedUnlock ? 'lock-open' : 'lock'}" class="w-3.5 h-3.5"></i>
+                                    <span>${isApprovedUnlock ? 'ได้รับอนุญาตให้แก้ไขคะแนน' : 'บันทึกและล็อกคะแนนแล้ว'}</span>
+                                </div>
+                                <div class="text-2xl font-extrabold text-slate-900 mt-0.5">${Number(c.total_score).toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 100</span></div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">ศิลปะ ${c.artistic_score} • รวมวง ${c.ensemble_score} • เทคนิค ${c.technique_score}</div>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200 inline-block mt-1">
+                                    ${getMedalText(c.total_score)}
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        scoreSummaryHtml = `
+                            <div class="sm:text-right">
+                                <span class="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200 font-medium inline-block">
+                                    ยังไม่ได้ลงคะแนน
+                                </span>
+                            </div>
+                        `;
+                    }
+
+                    let actionHtml = '';
+                    if (!c.is_scored) {
+                        actionHtml = `
+                            <button onclick="openScoringModal(${c.id}, false)" class="w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition flex items-center justify-center gap-1.5 touch-manipulation">
+                                <i data-lucide="clipboard-edit" class="w-4 h-4 text-amber-400"></i>
+                                <span>กรอกคะแนนรูบิค (100 คะแนน)</span>
+                            </button>
+                        `;
+                    } else if (isApprovedUnlock || (currentJudge && currentJudge.is_admin)) {
+                        actionHtml = `
+                            <button onclick="openScoringModal(${c.id}, true)" class="w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition flex items-center justify-center gap-1.5 touch-manipulation">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                <span>${isApprovedUnlock ? 'แก้ไขคะแนน (ได้รับอนุญาตแล้ว)' : 'แก้ไขคะแนน (สิทธิ์ประธานกรรมการ)'}</span>
+                            </button>
+                        `;
+                    } else if (reqStatus === 'pending') {
+                        actionHtml = `
+                            <span class="inline-flex items-center justify-center w-full sm:w-auto gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                                <span>รออนุมัติแก้ไขคะแนนจากประธานกรรมการ</span>
+                            </span>
+                        `;
+                    } else {
+                        const rejectedNote = (reqStatus === 'rejected' && c.latest_edit_request.admin_note)
+                            ? `<span class="text-xs text-red-600 block sm:inline sm:mr-3">คำขอล่าสุดไม่อนุมัติ: ${c.latest_edit_request.admin_note}</span>`
+                            : '';
+                        actionHtml = `
+                            ${rejectedNote}
+                            <button onclick="openRequestEditModal(${c.id})" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center justify-center gap-1.5 touch-manipulation">
+                                <i data-lucide="lock-open" class="w-4 h-4 text-amber-600"></i>
+                                <span>ขออนุญาตแก้ไขคะแนน</span>
+                            </button>
+                        `;
+                    }
+
+                    let editLogHtml = '';
+                    if (c.edit_logs && c.edit_logs.length > 0) {
+                        editLogHtml = `
+                            <div class="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                                <div class="font-bold text-slate-700 flex items-center gap-1">
+                                    <i data-lucide="history" class="w-3.5 h-3.5 text-amber-600"></i> ประวัติการแก้ไขคะแนนของท่าน:
+                                </div>
+                                ${c.edit_logs.map(l => `
+                                    <div class="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                                        จาก <strong>${l.old_total}</strong> → <strong>${l.new_total}</strong> • จุดที่แก้: ${l.edited_fields || '-'} • เหตุผล: "${l.reason}"
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <span class="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
+                                    ${c.order_no}
+                                </span>
+                                <div>
+                                    <h4 class="text-base sm:text-lg font-bold text-slate-900">${c.school_name}</h4>
+                                    <p class="text-xs text-slate-500 font-medium">${c.affiliation_group}</p>
+                                </div>
+                            </div>
+                            ${scoreSummaryHtml}
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-xs text-slate-600 mb-4 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                            <div>
+                                <span class="font-bold text-slate-700 block mb-1.5 flex items-center gap-1">
+                                    <i data-lucide="users" class="w-3.5 h-3.5 text-slate-500"></i> รายชื่อนักเรียน (${studentLines.length} คน)
+                                </span>
+                                <div class="space-y-0.5 max-h-36 overflow-y-auto scroll-touch pr-1">
+                                    ${studentLines.map(s => `<div>${s}</div>`).join('')}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-700 block mb-1.5 flex items-center gap-1">
+                                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-slate-500"></i> ครูผู้ฝึกสอน
+                                </span>
+                                <div class="space-y-0.5">
+                                    ${teacherLines.map(t => `<div>${t}</div>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-end gap-2">
+                            ${actionHtml}
+                        </div>
+                        ${editLogHtml}
+                    `;
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function openScoringModal(competitorId, isEditMode) {
+            const comp = currentCompetitors.find(c => c.id === competitorId);
+            if (!comp) return;
+
+            document.getElementById('modalCompetitorId').value = comp.id;
+            document.getElementById('modalIsEditMode').value = isEditMode ? '1' : '0';
+            document.getElementById('modalCategoryName').innerText = currentCategory.name;
+            document.getElementById('modalSchoolName').innerText = comp.school_name;
+            document.getElementById('modalAffiliation').innerText = `ลำดับที่ ${comp.order_no} • สังกัด: ${comp.affiliation_group}`;
+
+            const subKeys = ['art_1', 'art_2', 'art_3', 'art_4', 'ens_1', 'ens_2', 'ens_3', 'tech_1', 'tech_2', 'tech_3'];
+            subKeys.forEach(k => {
+                document.getElementById(`input_${k}`).value = comp[k] !== null && comp[k] !== undefined ? comp[k] : '';
+            });
+            document.getElementById('modalComment').value = comp.comments || '';
+
+            const editBox = document.getElementById('editReasonContainer');
+            const editFieldsInput = document.getElementById('editFieldsInput');
+            const editReasonInput = document.getElementById('editReasonInput');
+
+            if (isEditMode) {
+                editBox.classList.remove('hidden');
+                editFieldsInput.required = true;
+                editReasonInput.required = true;
+                if (comp.latest_edit_request && comp.latest_edit_request.status === 'approved') {
+                    editFieldsInput.value = comp.latest_edit_request.target_fields || '';
+                    editReasonInput.value = comp.latest_edit_request.reason || '';
+                } else {
+                    editFieldsInput.value = '';
+                    editReasonInput.value = '';
+                }
+            } else {
+                editBox.classList.add('hidden');
+                editFieldsInput.required = false;
+                editReasonInput.required = false;
+                editFieldsInput.value = '';
+                editReasonInput.value = '';
+            }
+
+            calculateLiveTotal();
+            document.getElementById('scoringModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeScoringModal() { document.getElementById('scoringModal').classList.add('hidden'); }
+
+        function calculateLiveTotal() {
+            const getVal = id => parseFloat(document.getElementById(`input_${id}`).value) || 0;
+            const art = getVal('art_1') + getVal('art_2') + getVal('art_3') + getVal('art_4');
+            const ens = getVal('ens_1') + getVal('ens_2') + getVal('ens_3');
+            const tech = getVal('tech_1') + getVal('tech_2') + getVal('tech_3');
+
+            document.getElementById('secTotal_artistic').innerText = art.toFixed(1);
+            document.getElementById('secTotal_ensemble').innerText = ens.toFixed(1);
+            document.getElementById('secTotal_technique').innerText = tech.toFixed(1);
+
+            const total = art + ens + tech;
+            document.getElementById('liveTotalScoreDisplay').innerHTML = `${total.toFixed(2)} <span class="text-xs font-normal text-slate-500">/ 100</span>`;
+
+            const badge = document.getElementById('liveMedalBadge');
+            badge.innerText = getMedalText(total);
+
+            if (total >= 80) badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300";
+            else if (total >= 70) badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-800 border border-slate-300";
+            else if (total >= 60) badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300";
+            else badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200";
+        }
+
+        function getMedalText(score) {
+            if (score >= 80) return "เหรียญทอง 🥇";
+            if (score >= 70) return "เหรียญเงิน 🥈";
+            if (score >= 60) return "เหรียญทองแดง 🥉";
+            return "เกียรติบัตรเข้าร่วม 📜";
+        }
+
+        async function handleScoreSubmit(e) {
+            e.preventDefault();
+            if (!currentJudge) return alert('กรุณาเข้าสู่ระบบกรรมการก่อนให้คะแนน');
+
+            const getVal = id => parseFloat(document.getElementById(`input_${id}`).value) || 0;
+            const isEditMode = document.getElementById('modalIsEditMode').value === '1';
+
+            const payload = {
+                judge_id: currentJudge.id,
+                competitor_id: parseInt(document.getElementById('modalCompetitorId').value),
+                art_1: getVal('art_1'), art_2: getVal('art_2'), art_3: getVal('art_3'), art_4: getVal('art_4'),
+                ens_1: getVal('ens_1'), ens_2: getVal('ens_2'), ens_3: getVal('ens_3'),
+                tech_1: getVal('tech_1'), tech_2: getVal('tech_2'), tech_3: getVal('tech_3'),
+                comments: document.getElementById('modalComment').value.trim(),
+                edited_fields: isEditMode ? document.getElementById('editFieldsInput').value.trim() : '',
+                edit_reason: isEditMode ? document.getElementById('editReasonInput').value.trim() : ''
+            };
+
+            setLoading(true, 'กำลังบันทึกคะแนน...');
+            try {
+                const data = await apiPost('/api/scores/submit', 'submit_score', payload);
+                alert(`บันทึกคะแนนเรียบร้อยแล้ว!\nคะแนนรวม: ${data.total_score} (${data.medal})`);
+                closeScoringModal();
+                await loadCompetitors(currentCategory.id);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function openRequestEditModal(competitorId) {
+            const comp = currentCompetitors.find(c => c.id === competitorId);
+            if (!comp) return;
+            document.getElementById('reqEditCompetitorId').value = comp.id;
+            document.getElementById('reqEditSchoolLabel').innerText = `โรงเรียน: ${comp.school_name} (คะแนนปัจจุบัน: ${comp.total_score})`;
+            document.getElementById('reqEditFields').value = '';
+            document.getElementById('reqEditReason').value = '';
+            document.getElementById('requestEditModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function closeRequestEditModal() { document.getElementById('requestEditModal').classList.add('hidden'); }
+
+        async function handleRequestEditSubmit(e) {
+            e.preventDefault();
+            setLoading(true, 'กำลังส่งคำขอไปยังประธานกรรมการ...');
+            try {
+                const data = await apiPost('/api/scores/request-edit', 'request_edit', {
+                    judge_id: currentJudge.id,
+                    competitor_id: parseInt(document.getElementById('reqEditCompetitorId').value),
+                    target_fields: document.getElementById('reqEditFields').value.trim(),
+                    reason: document.getElementById('reqEditReason').value.trim()
+                });
+                alert(data.message);
+                closeRequestEditModal();
+                await loadCompetitors(currentCategory.id);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            switchAdminTab('requests');
+            lucide.createIcons();
+        }
+        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        function switchAdminTab(tab) {
+            const tabReq = document.getElementById('adminTabReq');
+            const tabJud = document.getElementById('adminTabJudges');
+            const paneReq = document.getElementById('adminRequestsPane');
+            const paneJud = document.getElementById('adminJudgesPane');
+
+            if (tab === 'requests') {
+                tabReq.className = "py-3 px-3 sm:px-4 text-xs font-bold border-b-2 border-slate-900 text-slate-900 touch-manipulation";
+                tabJud.className = "py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 touch-manipulation";
+                paneReq.classList.remove('hidden');
+                paneJud.classList.add('hidden');
+                loadAdminRequests();
+            } else {
+                tabJud.className = "py-3 px-3 sm:px-4 text-xs font-bold border-b-2 border-slate-900 text-slate-900 touch-manipulation";
+                tabReq.className = "py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 touch-manipulation";
+                paneJud.classList.remove('hidden');
+                paneReq.classList.add('hidden');
+                loadAdminJudges();
+            }
+        }
+
+        async function loadAdminRequests() {
+            const pane = document.getElementById('adminRequestsPane');
+            pane.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">กำลังโหลด...</div>';
+            try {
+                const reqs = await apiGet('/api/admin/edit-requests', 'edit_requests');
+                if (reqs.length === 0) {
+                    pane.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">ยังไม่มีคำขอแก้ไขคะแนนในขณะนี้</div>`;
+                    return;
+                }
+
+                pane.innerHTML = reqs.map(r => {
+                    const statusBadge = {
+                        pending: '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">รออนุมัติ</span>',
+                        approved: '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">อนุมัติแล้ว (รอกรรมการแก้)</span>',
+                        completed: '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">แก้ไขเสร็จสิ้น</span>',
+                        rejected: '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">ไม่อนุมัติ</span>'
+                    }[r.status] || r.status;
+
+                    const actions = r.status === 'pending' ? `
+                        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                            <button onclick="reviewEditRequest(${r.id}, 'approve')" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition touch-manipulation">
+                                อนุญาตให้แก้ไข
+                            </button>
+                            <button onclick="reviewEditRequest(${r.id}, 'reject')" class="px-3.5 py-2 rounded-lg bg-white hover:bg-red-50 text-red-600 border border-red-200 text-xs font-semibold transition touch-manipulation">
+                                ไม่อนุมัติ
+                            </button>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 text-xs">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="font-bold text-slate-900">${r.judge_name} <span class="font-normal text-slate-500">(${r.judge_school})</span></div>
+                                    <div class="text-slate-600 mt-0.5">รายการ: ${r.category_name} • <strong>${r.competitor_school}</strong> (คะแนนเดิม: ${r.current_total_score})</div>
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            <div class="mt-2 p-2.5 rounded-lg bg-white border border-slate-200 space-y-1">
+                                <div><strong>จุดที่ขอแก้:</strong> ${r.target_fields || '-'}</div>
+                                <div><strong>เหตุผล:</strong> ${r.reason}</div>
+                            </div>
+                            ${actions}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                pane.innerHTML = `<div class="text-center py-6 text-xs text-red-500">${err.message}</div>`;
+            }
+        }
+
+        async function reviewEditRequest(reqId, action) {
+            let note = '';
+            if (action === 'reject') {
+                note = prompt('ระบุเหตุผลที่ไม่อนุมัติ (ถ้ามี):') || '';
+            }
+            setLoading(true, 'กำลังบันทึกการพิจารณา...');
+            try {
+                const data = await apiPost(`/api/admin/edit-requests/${reqId}/review`, 'review_edit_request', {
+                    request_id: reqId,
+                    admin_id: currentJudge.id,
+                    action,
+                    admin_note: note
+                });
+                alert(data.message);
+                await loadAdminRequests();
+                await refreshPendingCount();
+                if (currentCategory) await loadCompetitors(currentCategory.id);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function loadAdminJudges() {
+            const pane = document.getElementById('adminJudgesPane');
+            pane.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">กำลังโหลด...</div>';
+            try {
+                const judges = await apiGet('/api/judges', 'judges');
+                pane.innerHTML = judges.map(j => `
+                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div>
+                            <div class="font-bold text-slate-900">
+                                ${j.fullname}
+                                ${j.is_admin ? '<span class="text-amber-700 ml-1">(ประธาน/แอดมิน)</span>' : (j.is_verified ? '<span class="text-emerald-700 ml-1">• สแกนยืนยันแล้ว</span>' : '<span class="text-slate-400 ml-1">• ยังไม่สแกน QR</span>')}
+                            </div>
+                            <div class="text-slate-500">${j.position}</div>
+                            ${j.email ? `<div class="text-[11px] text-slate-600 mt-0.5">อีเมล: ${j.email} • โทร: ${j.phone || '-'}</div>` : ''}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${!j.is_admin && j.is_verified ? `
+                                <button onclick="resetJudgeVerification(${j.id}, '${j.fullname}')" class="px-3 py-2 rounded-lg bg-white hover:bg-red-50 text-red-600 border border-red-200 font-semibold touch-manipulation">
+                                    รีเซ็ตให้สแกนใหม่
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                pane.innerHTML = `<div class="text-center py-6 text-xs text-red-500">${err.message}</div>`;
+            }
+        }
+
+        async function resetJudgeVerification(judgeId, fullname) {
+            if (!confirm(`ต้องการรีเซ็ตการยืนยันตัวตนของ ${fullname} เพื่อให้สแกน QR กรอกอีเมลและเบอร์โทรใหม่หรือไม่?`)) return;
+            setLoading(true, 'กำลังรีเซ็ต...');
+            try {
+                const data = await apiPost('/api/admin/update-judge', 'admin_update_judge', {
+                    admin_id: currentJudge.id,
+                    judge_id: judgeId,
+                    reset_verification: true
+                });
+                alert(data.message);
+                await loadAdminJudges();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function showSummaryView() {
+            hideAllSections();
+            document.getElementById('summarySection').classList.remove('hidden');
+            fetchResults();
+            lucide.createIcons();
+        }
+
+        function backFromSummary() {
+            if (currentCategory) {
+                hideAllSections();
+                document.getElementById('competitorSection').classList.remove('hidden');
+            } else if (currentJudge) {
+                showCategoryView();
+            } else {
+                showAuthView();
+            }
+        }
+
+        async function fetchResults() {
+            setLoading(true, 'กำลังสรุปผลคะแนน...');
+            try {
+                const data = await apiGet('/api/results', 'results');
+                const container = document.getElementById('resultsCategoryContainer');
+                container.innerHTML = '';
+
+                data.results.forEach(rCat => {
+                    const section = document.createElement('div');
+                    section.className = "bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs print-break";
+
+                    const judgesListHtml = rCat.judges.map(j => `
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-center">
+                            <div class="text-[10px] text-amber-700 font-bold">${j.role}</div>
+                            <div class="font-bold text-slate-900 mt-0.5">${j.fullname}</div>
+                            <div class="text-[10px] text-slate-500">${j.school}</div>
+                        </div>
+                    `).join('');
+
+                    let rowsHtml = '';
+                    rCat.competitors.forEach(cItem => {
+                        const comp = cItem.competitor;
+
+                        let judgeScoresDetail = '';
+                        if (cItem.scores_given.length > 0) {
+                            judgeScoresDetail = cItem.scores_given.map(sg => `
+                                <div class="inline-flex items-center gap-1.5 bg-slate-50 text-[11px] px-2.5 py-1 rounded-lg border border-slate-200 mr-1.5 mb-1">
+                                    <span class="font-semibold text-slate-700">${sg.fullname.split(' ')[0]}:</span>
+                                    <span class="text-slate-500">(${sg.artistic_score}/${sg.ensemble_score}/${sg.technique_score})</span>
+                                    <strong class="text-slate-900 font-mono">${sg.total_score}</strong>
+                                </div>
+                            `).join('');
+                        } else {
+                            judgeScoresDetail = '<span class="text-xs text-slate-400">ยังไม่มีกรรมการลงคะแนน</span>';
+                        }
+
+                        let auditHtml = '';
+                        if (cItem.edit_logs && cItem.edit_logs.length > 0) {
+                            auditHtml = `
+                                <div class="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 space-y-0.5">
+                                    <div class="font-bold">ประวัติการแก้ไขคะแนน:</div>
+                                    ${cItem.edit_logs.map(l => `
+                                        <div>• ${l.judge_name}: ${l.old_total} → ${l.new_total} (${l.edited_fields || 'คะแนน'}) — เหตุผล: "${l.reason}" (อนุมัติโดย ${l.approved_by_name || 'ประธานฯ'})</div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
+
+                        const medalClass = cItem.avg_total >= 80
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : (cItem.avg_total >= 70 ? 'bg-slate-200 text-slate-800 border-slate-300'
+                            : (cItem.avg_total >= 60 ? 'bg-orange-100 text-orange-800 border-orange-300'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'));
+
+                        rowsHtml += `
+                            <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition text-xs sm:text-sm">
+                                <td class="py-3.5 px-2.5 sm:px-3 text-center font-bold text-slate-900">${cItem.rank}</td>
+                                <td class="py-3.5 px-2.5 sm:px-3">
+                                    <div class="font-bold text-slate-900">${comp.school_name}</div>
+                                    <div class="text-[11px] text-slate-500">${comp.affiliation_group} • ประเมินแล้ว ${cItem.judges_count}/${cItem.total_expected_judges} ท่าน</div>
+                                    <div class="mt-2 flex flex-wrap">${judgeScoresDetail}</div>
+                                    ${auditHtml}
+                                </td>
+                                <td class="py-3.5 px-3 text-center font-mono text-slate-700 hidden md:table-cell">${Number(cItem.avg_artistic).toFixed(2)}</td>
+                                <td class="py-3.5 px-3 text-center font-mono text-slate-700 hidden md:table-cell">${Number(cItem.avg_ensemble).toFixed(2)}</td>
+                                <td class="py-3.5 px-3 text-center font-mono text-slate-700 hidden md:table-cell">${Number(cItem.avg_technique).toFixed(2)}</td>
+                                <td class="py-3.5 px-2.5 sm:px-3 text-center font-mono font-extrabold text-base text-slate-900">${Number(cItem.avg_total).toFixed(2)}</td>
+                                <td class="py-3.5 px-2.5 sm:px-3 text-center">
+                                    <span class="px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold border whitespace-nowrap ${medalClass}">
+                                        ${cItem.medal}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    section.innerHTML = `
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-200 pb-3 gap-2">
+                            <div>
+                                <span class="text-xs px-2.5 py-0.5 rounded-lg bg-slate-900 text-amber-400 font-mono font-bold">
+                                    รหัส ${rCat.category.code}
+                                </span>
+                                <h4 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5">${rCat.category.name}</h4>
+                            </div>
+                        </div>
+
+                        <div class="mb-5">
+                            <span class="text-[11px] text-slate-500 font-semibold block mb-2">คณะกรรมการตัดสินประจำรายการ (${rCat.judges.length} ท่าน):</span>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                                ${judgesListHtml}
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto scroll-touch">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-600 text-xs border-y border-slate-200 font-bold">
+                                        <th class="py-2.5 px-2.5 sm:px-3 text-center w-12">อันดับ</th>
+                                        <th class="py-2.5 px-2.5 sm:px-3">โรงเรียน / สังกัด / คะแนนรายกรรมการ</th>
+                                        <th class="py-2.5 px-3 text-center hidden md:table-cell">ศิลปะ (40)</th>
+                                        <th class="py-2.5 px-3 text-center hidden md:table-cell">รวมวง (30)</th>
+                                        <th class="py-2.5 px-3 text-center hidden md:table-cell">เทคนิค (30)</th>
+                                        <th class="py-2.5 px-2.5 sm:px-3 text-center">เฉลี่ย</th>
+                                        <th class="py-2.5 px-2.5 sm:px-3 text-center">รางวัล</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rowsHtml}</tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.appendChild(section);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>

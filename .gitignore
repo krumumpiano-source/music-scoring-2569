@@ -1,0 +1,4 @@
+scoring.db
+__pycache__/
+*.pyc
+.clasprc.json
